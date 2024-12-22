@@ -10,6 +10,9 @@ import numpy as np
 import faiss
 
 logger = logging.getLogger(__name__)
+if not os.getenv("LOG_ENABLED", "").lower() in ("true", "1", "yes"):
+    logger.addHandler(logging.NullHandler())
+    logger.setLevel(logging.CRITICAL)
 
 class VectorStore(ABC):
     @abstractmethod
@@ -21,7 +24,7 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def search(self, embedding: List[float], limit: int = 8) -> List[Dict[str, Any]]:
+    async def search(self, embedding: List[float], limit: int = 5) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
@@ -81,9 +84,10 @@ class PostgresVectorStore(VectorStore):
             url, title, content, embedding_json
         )
 
-    async def search(self, embedding: List[float], limit: int = 8) -> List[Dict[str, Any]]:
+    async def search(self, embedding: List[float], limit: int = 5) -> List[Dict[str, Any]]:
         query = '''
             SELECT url, title, content, 
+                   1 / (1 + (embedding <-> $1)) as similarity,
                    embedding <-> $1 as distance
             FROM doc_sections 
             ORDER BY embedding <-> $1 
@@ -97,9 +101,9 @@ class PostgresVectorStore(VectorStore):
         results = [dict(row) for row in rows]
         
         for result in results:
-            logger.info(f"Found match: {result['title']} (distance: {result['distance']:.4f})")
+            logger.info(f"Found match: {result['title']} (L2 distance: {result['distance']:.4f}, similarity: {result['similarity']:.4f})")
             
-        return [{k: v for k, v in r.items() if k != 'distance'} for r in results]
+        return [{k: v for k, v in r.items() if k not in ['distance', 'similarity']} for r in results]
 
     async def close(self) -> None:
         if self.pool:
@@ -179,7 +183,7 @@ class FaissVectorStore(VectorStore):
             logger.error(f"Failed to insert document: {e}")
             raise RuntimeError(f"Document insertion failed: {e}")
 
-    async def search(self, embedding: List[float], limit: int = 8) -> List[Dict[str, Any]]:
+    async def search(self, embedding: List[float], limit: int = 5) -> List[Dict[str, Any]]:
         logger.info(f"Searching FAISS index with limit={limit}")
         logger.debug(f"Index contains {self.index.ntotal} vectors")
         
@@ -195,13 +199,14 @@ class FaissVectorStore(VectorStore):
             for i, idx in enumerate(indices[0]):
                 if idx != -1:  # FAISS returns -1 for empty slots
                     doc = self.documents[idx]
+                    doc['similarity_score'] = float(1 / (1 + distances[0][i]))  # Convert distance to similarity
                     results.append(doc)
-                    logger.debug(f"Result {i+1}: {doc['title']} (distance: {distances[0][i]:.4f})")
+                    logger.info(f"Result {i+1}: {doc['title']} (L2 distance: {distances[0][i]:.4f}, similarity: {doc['similarity_score']:.4f})")
                 else:
                     logger.debug(f"Result {i+1}: Empty slot")
             
             logger.info(f"Returning {len(results)} matching documents")
-            return results
+            return [{k: v for k, v in r.items() if k != 'similarity_score'} for r in results]
             
         except Exception as e:
             logger.error(f"Search failed: {e}")
@@ -325,23 +330,30 @@ class ChromaVectorStore(VectorStore):
             ids=[url]  # Using URL as unique ID
         )
 
-    async def search(self, embedding: List[float], limit: int = 8) -> List[Dict[str, Any]]:
+    async def search(self, embedding: List[float], limit: int = 5) -> List[Dict[str, Any]]:
         logger.info("Current ChromaDB statistics before search:")
         self._print_collection_stats()
         
         results = self.collection.query(
             query_embeddings=[embedding],
-            n_results=limit
+            n_results=limit,
+            include_distances=True
         )
         
-        return [
-            {
+        documents = []
+        for i, (meta, doc, distance) in enumerate(zip(
+            results["metadatas"][0], 
+            results["documents"][0],
+            results["distances"][0]
+        )):
+            similarity = 1 / (1 + distance)
+            logger.info(f"Result {i+1}: {meta['title']} (L2 distance: {distance:.4f}, similarity: {similarity:.4f})")
+            documents.append({
                 "url": meta["url"],
                 "title": meta["title"],
                 "content": doc
-            }
-            for meta, doc in zip(results["metadatas"][0], results["documents"][0])
-        ]
+            })
+        return documents
 
     async def close(self) -> None:
         # ChromaDB handles cleanup automatically

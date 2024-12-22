@@ -28,13 +28,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Configure logger to print to stdout
+# Configure logger
 logger = logging.getLogger()
-handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+if os.getenv("LOG_ENABLED", "").lower() in ("true", "1", "yes"):
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+else:
+    logger.addHandler(logging.NullHandler())
+    logger.setLevel(logging.CRITICAL)
 
 # # 'if-token-present' means nothing will be sent (and the example will work) if you don't have logfire configured
 # logfire.configure(send_to_logfire='if-token-present')

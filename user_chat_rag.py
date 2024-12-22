@@ -16,14 +16,24 @@ class GeneralQuery(BaseModel):
     results : list[str]
 
 
+MAIN_SYSTEM_PROMPT = """
+You are a AWS Cloud Migration Expert who helps users with their questions on 
+    Cloud Migration to AWS Services. You should use the search tool to find the answer for the user question. 
+    Be as specific as possible with citations in the document. 
+    If an answer is a) not available in the Knowledgebase, b) when asked about Azure or Google, GCP etc. or
+    c) if the answers are not available in the conversational history, then politely decline to answer and 
+    instead suggest that they visit https://aws.amazon.com/migrate-modernize-build/cloud-migration/how-to-migrate/
+    """
+
 user_proxy: Agent[None, Union[GeneralQuery, str]] = Agent(
-    'openai:gpt-4o-mini',
+    'openai:gpt-4o', # 'openai:gpt-4o-mini'
     deps_type=Optional[GeneralQuery], # type: ignore
     result_type=str,  # type: ignore
     system_prompt=(
-        "You are an helpful AI assistant who has extensive knowledge on Cloud MIgration. You will use the search "
-        "the docs for the answers. "
-        "Topics unrelated to cloud migration or document management, politely refuse to answer"
+        MAIN_SYSTEM_PROMPT
+        # "You are an helpful AI assistant who has extensive knowledge on Cloud MIgration. You will use the search "
+        # "the docs for the answers. "
+        # "Topics unrelated to cloud migration or document management, politely refuse to answer"
     ),
 )
 
@@ -91,12 +101,15 @@ async def search_docs(ctx: RunContext[GeneralQuery], query: str) -> str:
     # print(hyde.data)
     return results
 
+
 from pydantic_ai.messages import ModelRequest, ModelResponse
 
 history : list[ModelRequest | ModelResponse] | None = []
 # result = user_proxy.run_sync("What is Google share price?", message_history=history)
 # print(result.data)
 while True:
+    import asyncio
+    # rag_agent.build_search_db("file:///Users/sudranga1/workspace/test_create_llama/data", os.getenv("VECTOR_DB", "chromadb"))
     query = input("Begin> ")
     if query.lower().strip() == 'quit':
         break
