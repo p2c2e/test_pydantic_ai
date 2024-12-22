@@ -1,0 +1,12 @@
+asyncpg
+beautifulsoup4
+html2text
+httpx
+logfire
+openai
+playwright
+pydantic
+pydantic_ai
+pydantic_core
+python-dotenv
+typing_extensions
