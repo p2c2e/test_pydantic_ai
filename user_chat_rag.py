@@ -1,3 +1,4 @@
+import os
 from typing import Union, Optional
 
 from pydantic import BaseModel
@@ -21,7 +22,8 @@ user_proxy: Agent[None, Union[GeneralQuery, str]] = Agent(
     result_type=str,  # type: ignore
     system_prompt=(
         "You are an helpful AI assistant who has extensive knowledge on Cloud MIgration. You will use the search "
-        "the docs for answers. Topics unrelated to cloud migration or document management, politely refuse to answer"
+        "the docs for the answers. "
+        "Topics unrelated to cloud migration or document management, politely refuse to answer"
     ),
 )
 
@@ -48,7 +50,8 @@ async def indexer(ctx: RunContext[GeneralQuery]) -> str:
     import rag_agent
     print("Indexing....")
     try:
-        await rag_agent.build_search_db("file:///Users/sudranga1/workspace/test_create_llama/data")
+        import os
+        await rag_agent.build_search_db("file:///Users/sudranga1/workspace/test_create_llama/data", os.getenv("VECTOR_DB", "chromadb"))
     except Exception as e:
         return f"Failed to index the files due to error {e}"
 
@@ -82,7 +85,8 @@ async def search_docs(ctx: RunContext[GeneralQuery], query: str) -> str:
         (str): The search results as a formatted string
     """
     print(f"Searching the docs with query {query}")
-    results = await rag_agent.run_agent(query)
+    import os
+    results = await rag_agent.run_agent(query, vector_db_type=os.getenv("VECTOR_DB", "chromadb"))
     # hyde = await hyde_agent.run(query)
     # print(hyde.data)
     return results

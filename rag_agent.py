@@ -77,7 +77,7 @@ async def retrieve(context: RunContext[Deps], search_query: str) -> str:
     ), f'Expected 1 embedding, got {len(embedding_response.data)}, doc query: {search_query!r}'
     
     embedding = embedding_response.data[0].embedding
-    logger.info("Performing vector search...")
+    logger.info(f"Performing vector search...{len(embedding)}")
     results = await context.deps.vector_store.search(embedding)
     logger.info(f"Found {len(results)} matching documents")
     
@@ -94,7 +94,8 @@ async def run_agent(question: str, vector_db_type: str = "chromadb"):
     """Entry point to run the agent and perform RAG based question answering."""
     openai = AsyncOpenAI()
     vector_store = get_vector_store(vector_db_type)
-    await vector_store.initialize()
+    # Only initialize without recreating for search queries
+    await vector_store.initialize(recreate=False)
     try:
         deps = Deps(openai=openai, vector_store=vector_store)
         answer = await agent.run(question, deps=deps)
@@ -221,7 +222,9 @@ def build_search_db_from_folder(folder_path: str) -> List[DocsSection]:
         
     return sections
 
-async def build_search_db(path: str):
+async def build_search_db(path: str, vector_db_type: str = None):
+    if vector_db_type is None:
+        vector_db_type = os.getenv("VECTOR_DB", "chromadb")
     logger.info(f"Starting database build from path: {path}")
     """Build the search database from a URL or local file path.
     
@@ -265,7 +268,7 @@ async def build_search_db(path: str):
     openai = AsyncOpenAI()
     # logfire.instrument_openai(openai)
 
-    vector_store = get_vector_store(os.getenv("VECTOR_DB", "postgres"))
+    vector_store = get_vector_store(vector_db_type)
     await vector_store.initialize(recreate=True)
     
     sem = asyncio.Semaphore(10)

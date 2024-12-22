@@ -10,3 +10,6 @@ pydantic_ai
 pydantic_core
 python-dotenv
 typing_extensions
+faiss-cpu
+chromadb
+numpy
