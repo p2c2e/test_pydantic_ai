@@ -1,11 +1,8 @@
-import os
 from typing import Union, Optional
 
-from pydantic import BaseModel
-
-from pydantic_ai import Agent, RunContext, ModelRetry
-
 from dotenv import load_dotenv
+from pydantic import BaseModel
+from pydantic_ai import Agent, RunContext
 
 import rag_agent
 
@@ -108,7 +105,6 @@ history : list[ModelRequest | ModelResponse] | None = []
 # result = user_proxy.run_sync("What is Google share price?", message_history=history)
 # print(result.data)
 while True:
-    import asyncio
     # rag_agent.build_search_db("file:///Users/sudranga1/workspace/test_create_llama/data", os.getenv("VECTOR_DB", "chromadb"))
     query = input("Begin> ")
     if query.lower().strip() == 'quit':

@@ -1,30 +1,27 @@
 from __future__ import annotations as _annotations
 
 import asyncio
+import logging
+import os
 import re
 import sys
-import os
 import unicodedata
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import List, AsyncGenerator
-import json
-from docx import Document
-from PyPDF2 import PdfReader
+from typing import List
 
-import os
-import httpx
 import asyncpg
+import httpx
+from PyPDF2 import PdfReader
+from docx import Document
+from dotenv import load_dotenv
 from openai import AsyncOpenAI
-from vector_store import get_vector_store, VectorStore
 from pydantic import TypeAdapter
-from typing_extensions import AsyncGenerator
-
 from pydantic_ai import RunContext
 from pydantic_ai.agent import Agent
+from typing_extensions import AsyncGenerator
 
-import logging
-from dotenv import load_dotenv
+from vector_store import get_vector_store, VectorStore
 
 load_dotenv()
 
