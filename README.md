@@ -59,7 +59,7 @@ python searxng_agent.py
 # Run chat interface with search
 python user_chat_search.py
 
-# Run dynamic form filler
+# Run dynamic form filler - how to gather details for a form interactively...
 python form1/user_dyn_form_filler.py
 ```
 
