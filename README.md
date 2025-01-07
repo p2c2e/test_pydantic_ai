@@ -60,7 +60,7 @@ python searxng_agent.py
 python user_chat_search.py
 
 # Run dynamic form filler
-python form2/user_dyn_form_filler.py
+python form1/user_dyn_form_filler.py
 ```
 
 ### Document Processing
@@ -119,7 +119,7 @@ To run the examples:
 
 2. Install dependencies:
    ```bash
-   pip install -r requirements.txt
+   uv pip install -r requirements.txt
    ```
 
 3. Run specific examples:

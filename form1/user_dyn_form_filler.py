@@ -2,9 +2,6 @@ from typing import Union, Optional, Any
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from pydantic_ai import Agent, RunContext
-
-import rag_agent
 
 load_dotenv(verbose=True)
 
@@ -12,6 +9,12 @@ from pydantic_ai import Agent, RunContext, ModelRetry
 
 import logging
 import os
+
+###############################################################################################################
+# The script is to show how to gather details for a any Form (say product return request)
+# interactively. The number of result_retries is the number of interactions before agent gives up
+# In this case: We gather name, age and city interactively and allow for correction in case of errors
+###############################################################################################################
 
 logger = logging.getLogger()
 if os.getenv("LOG_ENABLED", "").lower() in ("true", "1", "yes"):
