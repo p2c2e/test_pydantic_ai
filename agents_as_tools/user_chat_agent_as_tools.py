@@ -1,12 +1,12 @@
-from typing import Union, Optional
+import datetime
+from typing import Optional
 
-from pydantic import BaseModel
-
-from pydantic_ai import Agent, RunContext, ModelRetry
+from dotenv import load_dotenv
+from pydantic_ai import Agent
 
 from agent_utils import register_agent_as_tool
-from websurfer_agent import create_websurfer_agent
-from dotenv import load_dotenv
+from filesurfer_agent import create_filesurfer_agent, FileSurferState
+from websurfer_agent import create_websurfer_agent, BrowserState
 
 load_dotenv()
 
@@ -15,7 +15,7 @@ user_proxy = Agent(
     deps_type=Optional[str], # type: ignore
     result_type=str,  # type: ignore
     system_prompt=(
-        "You are an helpful AI assistant who has extensive general knowledge"
+        f"You are an helpful AI assistant who has extensive general knowledge. Today is {datetime.date.today()}"
     ),
 )
 
@@ -26,9 +26,18 @@ web_surfer = create_websurfer_agent()
 
 # Register the web_surfer agent as a tool in the user_proxy agent
 if web_surfer is not None:
-    register_agent_as_tool(user_proxy, web_surfer)
+    def deps_fn():
+        return BrowserState()
+    register_agent_as_tool(user_proxy, web_surfer, deps_fn)
 else:
     raise ValueError("Failed to create web_surfer agent")
+
+
+file_surfer =  create_filesurfer_agent()
+if file_surfer is not None:
+    def deps_fn():
+        return FileSurferState(current_dir="/tmp")
+    register_agent_as_tool(user_proxy, file_surfer, deps_fn)
 
 history: list[ModelRequest | ModelResponse] | None = []
 while True:
