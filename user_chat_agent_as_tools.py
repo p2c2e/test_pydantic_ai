@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 from pydantic_ai import Agent, RunContext, ModelRetry
 
+from agent_utils import register_agent_as_tool
+from websurfer_agent import create_websurfer_agent
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,7 +21,16 @@ user_proxy = Agent(
 
 from pydantic_ai.messages import ModelRequest, ModelResponse
 
-history : list[ModelRequest | ModelResponse] | None = []
+# Create the web_surfer agent
+web_surfer = create_websurfer_agent()
+
+# Register the web_surfer agent as a tool in the user_proxy agent
+if web_surfer is not None:
+    register_agent_as_tool(user_proxy, web_surfer)
+else:
+    raise ValueError("Failed to create web_surfer agent")
+
+history: list[ModelRequest | ModelResponse] | None = []
 while True:
     query = input("Begin> ")
     if query.lower().strip() == 'quit':
